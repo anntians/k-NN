@@ -1,5 +1,9 @@
-#  Copyright OpenSearch Contributors
-#  SPDX-License-Identifier: Apache-2.0
+# Copyright OpenSearch Contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# The OpenSearch Contributors require contributions made to
+# this file be licensed under the Apache-2.0 license or a
+# compatible open source license.
 
 from concurrent.futures import ThreadPoolExecutor
 import logging
@@ -71,7 +75,7 @@ class WorkflowExecutor:
             else:
                 logger.info(f"Job {workflow.job_id} was cancelled during execution")
 
-        except (BuildError, ObjectStoreError, MemoryError, RuntimeError) as e:
+        except (Exception, BuildError, ObjectStoreError, MemoryError, RuntimeError) as e:
             logger.error(
                 f"Build process failed for job {workflow.job_id}: {str(e)}"
             )

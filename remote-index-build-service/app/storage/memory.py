@@ -1,5 +1,9 @@
-#  Copyright OpenSearch Contributors
-#  SPDX-License-Identifier: Apache-2.0
+# Copyright OpenSearch Contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# The OpenSearch Contributors require contributions made to
+# this file be licensed under the Apache-2.0 license or a
+# compatible open source license.
 
 from typing import Dict, Optional, Any
 from datetime import datetime, timedelta, timezone
@@ -10,6 +14,10 @@ from models.job import Job
 from storage.base import RequestStore
 from core.config import Settings
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 class InMemoryRequestStore(RequestStore):
     def __init__(self, settings: Settings):
         self._store: Dict[str, tuple[Job, datetime]] = {}
@@ -18,22 +26,30 @@ class InMemoryRequestStore(RequestStore):
         self._ttl_seconds = settings.request_store_ttl_seconds
 
         # Start cleanup thread
-        self._cleanup_thread = threading.Thread(target=self._cleanup_loop, daemon=True)
-        self._cleanup_thread.start()
+        if self._ttl_seconds is not None:
+            logger.info(f"Starting cleanup thread for request store with TTL {self._ttl_seconds} seconds")
+            self._cleanup_thread = threading.Thread(target=self._cleanup_loop, daemon=True)
+            self._cleanup_thread.start()
 
     def add(self, job_id: str, job: Job) -> bool:
         with self._lock:
             if len(self._store) >= self._max_size:
                 return False
-
-            self._store[job_id] = (job, datetime.now(timezone.utc))
-            return True
+            else:
+                self._store[job_id] = (job, datetime.now(timezone.utc))
+                return True
 
     def get(self, job_id: str) -> Optional[Job]:
         with self._lock:
             if job_id in self._store:
                 job, timestamp = self._store[job_id]
-                if datetime.now(timezone.utc) - timestamp < timedelta(seconds=self._ttl_seconds):
+                if (
+                        self._ttl_seconds is None or
+                        (
+                                self._ttl_seconds and
+                                datetime.now(timezone.utc) - timestamp < timedelta(seconds=self._ttl_seconds)
+                        )
+                ):
                     return job
                 else:
                     del self._store[job_id]
