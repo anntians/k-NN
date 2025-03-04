@@ -33,9 +33,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.opensearch.knn.index.codec.util.KNNCodecUtil.initializeVectorValues;
 import static org.opensearch.knn.index.remote.KNNRemoteConstants.DOC_ID_FILE_EXTENSION;
 import static org.opensearch.knn.index.remote.KNNRemoteConstants.VECTOR_BLOB_FILE_EXTENSION;
-import static org.opensearch.knn.index.codec.util.KNNCodecUtil.initializeVectorValues;
 
 public class DefaultVectorRepositoryAccessorTests extends RemoteIndexBuildTests {
 
