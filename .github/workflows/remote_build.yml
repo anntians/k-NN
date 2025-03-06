@@ -1,0 +1,102 @@
+name: Build and Test k-NN using Remote Index Builder
+on:
+  push:
+    branches:
+      - "*"
+      - "feature/**"
+    paths:
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'src/**'
+      - 'build-tools/**'
+      - 'buildSrc/**'
+      - 'gradle/**'
+      - 'jni/**'
+      - '.github/workflows/CI.yml'
+  pull_request:
+    branches:
+      - "*"
+      - "feature/**"
+    paths:
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'src/**'
+      - 'build-tools/**'
+      - 'buildSrc/**'
+      - 'gradle/**'
+      - 'jni/**'
+      - '.github/workflows/CI.yml'
+
+jobs:
+  Remote-Index-Build-IT-Tests:
+    strategy:
+      matrix:
+        java: [ 11, 17, 21 ]
+
+    name: Remote-Index-Build-IT-Tests
+    runs-on: macos-13
+    env:
+      INDEX_BUILD_TYPE: cpu
+
+    steps:
+      - name: Checkout k-NN
+        uses: actions/checkout@v4
+
+      # Setup git user so that patches for native libraries can be applied and committed
+      - name: Setup git user
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Java ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'temurin'
+
+      - name: Install dependencies on macos
+        run: |
+          brew install libomp
+          brew reinstall gcc
+          export FC=/usr/local/Cellar/gcc/12.2.0/bin/gfortran
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+
+      - name: Pull Remote Index Build Docker image from Docker Hub
+        run: |
+          docker pull anntians/remote-index-build-service-worker:latest 
+
+      - name: Pull LocalStack Docker image
+        run: |
+          docker pull localstack/localstack:latest     
+
+      - name: Run Docker container
+        run: |
+          docker run -d \
+            --name remote-index-build-service-worker1 \
+            -p 6005:6005 \
+            -e PYTHONDONTWRITEBYTECODE=1 \
+            -e PYTHONUNBUFFERED=1 \
+            -e INDEX_BUILD_TYPE=${{ env.INDEX_BUILD_TYPE }} \
+            anntians/remote-index-build-service-worker:latest python app.py
+
+      - name: Run LocalStack
+        run: |
+          docker run --rm -d -p 4566:4566 localstack/localstack:latest 
+
+      - name: Create S3 Bucket in LocalStack
+        run: |
+          aws --endpoint-url=http://localhost:4566 s3 mb s3://tommy-test-vector-repo-us-east-1-temp       
+
+      # TODO: Detect processor count and set the value of nproc.count
+      - name: Run Integ Tests
+        run: |
+          if sysctl -n machdep.cpu.features machdep.cpu.leaf7_features | grep -i AVX2
+          then
+              echo "avx2 available on system"
+              ./gradlew :integTestRemoteIndexBuild -Ds3.enabled=true --tests "org.opensearch.knn.index.AdvancedFilteringUseCasesIT" -Dnproc.count=3
+          else
+              echo "avx2 not available on system"
+              ./gradlew :integTestRemoteIndexBuild -Ds3.enabled=true --tests "org.opensearch.knn.index.AdvancedFilteringUseCasesIT" -Davx2.enabled=false -Davx512.enabled=false -Dnproc.count=3
+          fi
