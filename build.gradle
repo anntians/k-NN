@@ -499,6 +499,7 @@ task integTestRemoteIndexBuild(type: RestIntegTestTask) {
     systemProperty("user", user)
     systemProperty("password", password)
     systemProperty("test.exhaustive", System.getProperty("test.exhaustive"))
+    systemProperty("test.remoteBuild", System.getProperty("test.remoteBuild"))
 
     doFirst {
         // Tell the test JVM if the cluster JVM is running under a debugger so that tests can
@@ -565,10 +566,9 @@ testClusters.integTestRemoteIndexBuild {
         configureS3Plugin(testClusters.integTestRemoteIndexBuild)
     }
 
-    keystore 's3.client.default.access_key', 'test'
-    keystore 's3.client.default.secret_key', 'test'
-    keystore 's3.client.default.session_token', 'test'
-    systemProperty("opensearch.allow_insecure_settings", "true")
+    keystore 's3.client.default.access_key', System.getProperty("access_key")
+    keystore 's3.client.default.secret_key', System.getProperty("secret_key")
+    keystore 's3.client.default.session_token', System.getProperty("session_token")
 
     plugin(project.tasks.bundlePlugin.archiveFile)
     if (Os.isFamily(Os.FAMILY_WINDOWS)) {
