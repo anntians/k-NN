@@ -977,10 +977,10 @@ public class KNNRestTestCase extends ODFERestTestCase {
 
     protected Settings buildKNNIndexSettings(int approximateThreshold) {
         Settings.Builder builder = Settings.builder()
-                .put("number_of_shards", 1)
-                .put("number_of_replicas", 0)
-                .put(KNN_INDEX, true)
-                .put(INDEX_KNN_ADVANCED_APPROXIMATE_THRESHOLD, approximateThreshold);
+            .put("number_of_shards", 1)
+            .put("number_of_replicas", 0)
+            .put(KNN_INDEX, true)
+            .put(INDEX_KNN_ADVANCED_APPROXIMATE_THRESHOLD, approximateThreshold);
 
         final String remoteBuild = System.getProperty("test.remoteBuild", null);
         if (remoteBuild != null) {
@@ -2347,13 +2347,13 @@ public class KNNRestTestCase extends ODFERestTestCase {
     protected void setupRepository(String repository) {
 
         Settings.Builder builder = Settings.builder()
-                .put("bucket", "tommy-test-vector-repo-us-east-1-temp")
-                .put("base_path", "vectors")
-                .put("region", "us-east-1")
-                .put("s3_upload_retry_enabled", false);
+            .put("bucket", "tommy-test-vector-repo-us-east-1-temp")
+            .put("base_path", "vectors")
+            .put("region", "us-east-1")
+            .put("s3_upload_retry_enabled", false);
 
         final String remoteBuild = System.getProperty("test.remoteBuild", null);
-        if (remoteBuild != null && remoteBuild.equals("s3.localStack")){
+        if (remoteBuild != null && remoteBuild.equals("s3.localStack")) {
             builder.put("endpoint", "http://s3.localhost.localstack.cloud:4566");
         }
 

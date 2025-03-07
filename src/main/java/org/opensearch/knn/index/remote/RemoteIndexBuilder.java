@@ -393,7 +393,7 @@ public class RemoteIndexBuilder {
         BlobContainer blobContainer = getRepository().blobStore().blobContainer(getRepository().basePath());
         String indexUUID = indexSettings.getUUID();
         String blobName = indexUUID + "_" + fieldInfo.getName() + "_" + segmentWriteState.segmentInfo.name;
-        InputStream graphStream = blobContainer.readBlob(blobName + ".cpu");
+        InputStream graphStream = blobContainer.readBlob(blobName + GRAPH_FILE_EXTENSION);
         final String engineFileName = buildEngineFileName(
             segmentWriteState.segmentInfo.name,
             KNNEngine.FAISS.getVersion(),
