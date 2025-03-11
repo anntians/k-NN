@@ -5,8 +5,8 @@
 
 package org.opensearch.knn.index.remote;
 
+import lombok.Setter;
 import org.apache.commons.lang.StringUtils;
-import org.opensearch.knn.index.KNNSettings;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -21,18 +21,23 @@ import static org.opensearch.knn.index.remote.KNNRemoteConstants.TASK_STATUS;
 /**
  * Implementation of a {@link RemoteIndexWaiter} that awaits the vector build by polling.
  */
-class RemoteIndexPoller implements RemoteIndexWaiter {
+public class RemoteIndexPoller implements RemoteIndexWaiter {
     // The poller waits KNN_REMOTE_BUILD_CLIENT_POLL_INTERVAL * INITIAL_DELAY_FACTOR before sending the first status request
     private static final int INITIAL_DELAY_FACTOR = 3;
-
     private static final double JITTER_LOWER = 0.8;
     private static final double JITTER_UPPER = 1.2;
 
     private final RemoteIndexClient client;
-    private final Random random = new Random();
+    private final Random random;
+
+    @Setter
+    private long timeout; // Poll interval in nanoseconds, to use same units as System.nanoTime().
+    @Setter
+    private long pollInterval; // Poll interval in milliseconds
 
     RemoteIndexPoller(RemoteIndexClient client) {
         this.client = client;
+        this.random = new Random();
     }
 
     /**
@@ -46,9 +51,6 @@ class RemoteIndexPoller implements RemoteIndexWaiter {
     public RemoteBuildStatusResponse awaitVectorBuild(RemoteBuildStatusRequest remoteBuildStatusRequest) throws InterruptedException,
         IOException {
         long startTime = System.nanoTime();
-        long timeout = KNNSettings.getRemoteBuildClientTimeout().getNanos();
-        // Thread.sleep expects millis
-        long pollInterval = KNNSettings.getRemoteBuildClientPollInterval().getMillis();
 
         // Initial delay to allow build service to process the job and store the ID before getting its status.
         // TODO tune default based on benchmarking

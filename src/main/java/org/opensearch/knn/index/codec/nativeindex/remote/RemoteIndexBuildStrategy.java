@@ -34,6 +34,8 @@ import java.util.function.Supplier;
 import static org.opensearch.knn.index.KNNSettings.KNN_INDEX_REMOTE_VECTOR_BUILD_SETTING;
 import static org.opensearch.knn.index.KNNSettings.KNN_INDEX_REMOTE_VECTOR_BUILD_THRESHOLD_SETTING;
 import static org.opensearch.knn.index.KNNSettings.KNN_REMOTE_VECTOR_REPO_SETTING;
+import static org.opensearch.knn.index.KNNSettings.getRemoteBuildClientPollInterval;
+import static org.opensearch.knn.index.KNNSettings.getRemoteBuildClientTimeout;
 import static org.opensearch.knn.index.remote.KNNRemoteConstants.VECTORS_PATH;
 
 /**
@@ -155,7 +157,11 @@ public class RemoteIndexBuildStrategy implements NativeIndexBuildStrategy {
             RemoteBuildStatusRequest remoteBuildStatusRequest = RemoteBuildStatusRequest.builder()
                 .jobId(remoteBuildResponse.getJobId())
                 .build();
-            RemoteIndexWaiter waiter = RemoteIndexWaiterFactory.getRemoteIndexWaiter(client);
+            RemoteIndexWaiter waiter = RemoteIndexWaiterFactory.getRemoteIndexWaiter(
+                client,
+                getRemoteBuildClientTimeout().getNanos(),
+                getRemoteBuildClientPollInterval().getMillis()
+            );
             stopWatch = new StopWatch().start();
             RemoteBuildStatusResponse remoteBuildStatusResponse = waiter.awaitVectorBuild(remoteBuildStatusRequest);
             time_in_millis = stopWatch.stop().totalTime().millis();
