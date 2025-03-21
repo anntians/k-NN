@@ -83,26 +83,27 @@ public class RemoteIndexBuildStrategy implements NativeIndexBuildStrategy {
      * @return true if remote index build should be used, else false
      */
     public static boolean shouldBuildIndexRemotely(IndexSettings indexSettings, long vectorBlobLength) {
+        log.info("BUILDING INDEX REMOTELY");
         if (indexSettings == null) {
             return false;
         }
 
         // If setting is not enabled, return false
         if (!indexSettings.getValue(KNN_INDEX_REMOTE_VECTOR_BUILD_SETTING)) {
-            log.debug("Remote index build is disabled for index: [{}]", indexSettings.getIndex().getName());
+            log.info("Remote index build is disabled for index: [{}]", indexSettings.getIndex().getName());
             return false;
         }
 
         // If vector repo is not configured, return false
         String vectorRepo = KNNSettings.state().getSettingValue(KNN_REMOTE_VECTOR_REPO_SETTING.getKey());
         if (vectorRepo == null || vectorRepo.isEmpty()) {
-            log.debug("Vector repo is not configured, falling back to local build for index: [{}]", indexSettings.getIndex().getName());
+            log.info("Vector repo is not configured, falling back to local build for index: [{}]", indexSettings.getIndex().getName());
             return false;
         }
 
         // If size threshold is not met, return false
         if (vectorBlobLength < indexSettings.getValue(KNN_INDEX_REMOTE_VECTOR_BUILD_THRESHOLD_SETTING).getBytes()) {
-            log.debug(
+            log.info(
                 "Data size [{}] is less than remote index build threshold [{}], falling back to local build for index [{}]",
                 vectorBlobLength,
                 indexSettings.getValue(KNN_INDEX_REMOTE_VECTOR_BUILD_THRESHOLD_SETTING).getBytes(),
@@ -145,7 +146,7 @@ public class RemoteIndexBuildStrategy implements NativeIndexBuildStrategy {
                 indexInfo.getKnnVectorValuesSupplier()
             );
             time_in_millis = stopWatch.stop().totalTime().millis();
-            log.debug("Repository write took {} ms for vector field [{}]", time_in_millis, indexInfo.getFieldName());
+            log.info("Repository write took {} ms for vector field [{}]", time_in_millis, indexInfo.getFieldName());
 
             final RemoteIndexClient client = RemoteIndexClientFactory.getRemoteIndexClient(KNNSettings.getRemoteBuildServiceEndpoint());
             final RemoteBuildRequest buildRequest = buildRemoteBuildRequest(
@@ -158,7 +159,7 @@ public class RemoteIndexBuildStrategy implements NativeIndexBuildStrategy {
             stopWatch = new StopWatch().start();
             final RemoteBuildResponse remoteBuildResponse = client.submitVectorBuild(buildRequest);
             time_in_millis = stopWatch.stop().totalTime().millis();
-            log.debug("Submit vector build took {} ms for vector field [{}]", time_in_millis, indexInfo.getFieldName());
+            log.info("Submit vector build took {} ms for vector field [{}]", time_in_millis, indexInfo.getFieldName());
 
             final RemoteBuildStatusRequest remoteBuildStatusRequest = RemoteBuildStatusRequest.builder()
                 .jobId(remoteBuildResponse.getJobId())
@@ -167,12 +168,12 @@ public class RemoteIndexBuildStrategy implements NativeIndexBuildStrategy {
             stopWatch = new StopWatch().start();
             RemoteBuildStatusResponse remoteBuildStatusResponse = waiter.awaitVectorBuild(remoteBuildStatusRequest);
             time_in_millis = stopWatch.stop().totalTime().millis();
-            log.debug("Await vector build took {} ms for vector field [{}]", time_in_millis, indexInfo.getFieldName());
+            log.info("Await vector build took {} ms for vector field [{}]", time_in_millis, indexInfo.getFieldName());
 
             stopWatch = new StopWatch().start();
             vectorRepositoryAccessor.readFromRepository(remoteBuildStatusResponse.getFileName(), indexInfo.getIndexOutputWithBuffer());
             time_in_millis = stopWatch.stop().totalTime().millis();
-            log.debug("Repository read took {} ms for vector field [{}]", time_in_millis, indexInfo.getFieldName());
+            log.info("Repository read took {} ms for vector field [{}]", time_in_millis, indexInfo.getFieldName());
         } catch (Exception e) {
             // TODO: This needs more robust failure handling
             log.warn("Failed to build index remotely", e);

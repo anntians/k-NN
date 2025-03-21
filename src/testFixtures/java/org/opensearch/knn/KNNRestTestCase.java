@@ -22,6 +22,7 @@ import org.opensearch.Version;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.core.common.bytes.BytesReference;
@@ -176,10 +177,34 @@ public class KNNRestTestCase extends ODFERestTestCase {
      */
     @Before
     public void setupRemoteIndexBuildSettings() throws Exception {
-        if (randomBoolean() && isRemoteIndexBuildSupported(getBWCVersion())) {
+        final String remoteBuild = System.getProperty("test.remoteBuild", null);
+        if (isRemoteIndexBuildSupported(getBWCVersion()) && remoteBuild != null) {
             updateClusterSettings(KNNFeatureFlags.KNN_REMOTE_VECTOR_BUILD_SETTING.getKey(), true);
             updateClusterSettings(KNNSettings.KNN_REMOTE_VECTOR_REPO, "integ-test-repo");
+            updateClusterSettings(KNNSettings.KNN_REMOTE_BUILD_SERVICE_ENDPOINT, "http://0.0.0.0:80");
+            updateClusterSettings(KNNSettings.KNN_REMOTE_BUILD_CLIENT_POLL_INTERVAL, TimeValue.timeValueSeconds(1));
+            setupRepository("integ-test-repo");
         }
+    }
+
+    @SneakyThrows
+    protected void setupRepository(String repository) {
+        final String bucket = System.getProperty("test.bucket", null);
+        final String base_path = System.getProperty("test.base_path", null);
+
+        Settings.Builder builder = Settings.builder()
+                .put("bucket", bucket)
+                .put("base_path", base_path)
+                .put("region", "us-east-1")
+                .put("s3_upload_retry_enabled", false);
+
+        final String remoteBuild = System.getProperty("test.remoteBuild", null);
+        if (remoteBuild != null && remoteBuild.equals("s3.localStack")) {
+            builder.put("endpoint", "http://s3.localhost.localstack.cloud:4566");
+        }
+
+        registerRepository(repository, "s3", false, builder.build());
+
     }
 
     /**
@@ -962,15 +987,16 @@ public class KNNRestTestCase extends ODFERestTestCase {
 
     protected Settings buildKNNIndexSettings(int approximateThreshold) {
         Settings.Builder builder = Settings.builder()
-            .put("number_of_shards", 1)
-            .put("number_of_replicas", 0)
-            .put(KNN_INDEX, true)
-            .put(INDEX_KNN_ADVANCED_APPROXIMATE_THRESHOLD, approximateThreshold);
+                .put("number_of_shards", 1)
+                .put("number_of_replicas", 0)
+                .put(KNN_INDEX, true)
+                .put(INDEX_KNN_ADVANCED_APPROXIMATE_THRESHOLD, approximateThreshold);
 
-        // Randomly enable remote index build feature to test fallbacks
-        if (isRemoteIndexBuildSupported(getBWCVersion()) && randomBoolean()) {
+        final String remoteBuild = System.getProperty("test.remoteBuild", null);
+
+        if (isRemoteIndexBuildSupported(getBWCVersion()) && remoteBuild != null) {
             builder.put(KNN_INDEX_REMOTE_VECTOR_BUILD, true);
-            builder.put(KNN_INDEX_REMOTE_VECTOR_BUILD_THRESHOLD, "0mb");
+            builder.put(KNN_INDEX_REMOTE_VECTOR_BUILD_THRESHOLD, "0kb");
         }
         return builder.build();
     }

@@ -79,11 +79,14 @@ public class RemoteBuildIT extends KNNRestTestCase {
 
     @Before
     public void setupAdditionalRemoteIndexBuildSettings() throws Exception {
-        updateClusterSettings(KNNFeatureFlags.KNN_REMOTE_VECTOR_BUILD_SETTING.getKey(), true);
-        updateClusterSettings(KNNSettings.KNN_REMOTE_VECTOR_REPO, "integ-test-repo");
-        updateClusterSettings(KNNSettings.KNN_REMOTE_BUILD_SERVICE_ENDPOINT, "http://0.0.0.0:80");
-        updateClusterSettings(KNNSettings.KNN_REMOTE_BUILD_CLIENT_POLL_INTERVAL, 0);
-        setupRepository("integ-test-repo");
+        final String remoteBuild = System.getProperty("test.remoteBuild", null);
+        if (isRemoteIndexBuildSupported(getBWCVersion()) && remoteBuild != null) {
+            updateClusterSettings(KNNFeatureFlags.KNN_REMOTE_VECTOR_BUILD_SETTING.getKey(), true);
+            updateClusterSettings(KNNSettings.KNN_REMOTE_VECTOR_REPO, "integ-test-repo");
+            updateClusterSettings(KNNSettings.KNN_REMOTE_BUILD_SERVICE_ENDPOINT, "http://0.0.0.0:80");
+            updateClusterSettings(KNNSettings.KNN_REMOTE_BUILD_CLIENT_POLL_INTERVAL, 0);
+            setupRepositoryRemoteBuild("integ-test-repo");
+        }
     }
 
     @ParametersFactory(argumentFormatting = "description:%1$s; spaceType:%2$s")
@@ -321,7 +324,7 @@ public class RemoteBuildIT extends KNNRestTestCase {
     }
 
     @SneakyThrows
-    protected void setupRepository(String repository) {
+    protected void setupRepositoryRemoteBuild(String repository) {
         final String bucket = System.getProperty("test.bucket", null);
         final String base_path = System.getProperty("test.base_path", null);
 
@@ -341,13 +344,18 @@ public class RemoteBuildIT extends KNNRestTestCase {
     }
 
     protected Settings buildKNNIndexSettingsRemoteBuild(int approximateThreshold) {
-        return Settings.builder()
+        Settings.Builder builder = Settings.builder()
             .put("number_of_shards", 1)
             .put("number_of_replicas", 0)
             .put(KNN_INDEX, true)
-            .put(INDEX_KNN_ADVANCED_APPROXIMATE_THRESHOLD, approximateThreshold)
-            .put(KNN_INDEX_REMOTE_VECTOR_BUILD, true)
-            .put(KNN_INDEX_REMOTE_VECTOR_BUILD_THRESHOLD, "1kb")
-            .build();
+            .put(INDEX_KNN_ADVANCED_APPROXIMATE_THRESHOLD, approximateThreshold);
+
+        final String remoteBuild = System.getProperty("test.remoteBuild", null);
+
+        if (isRemoteIndexBuildSupported(getBWCVersion()) && remoteBuild != null) {
+            builder.put(KNN_INDEX_REMOTE_VECTOR_BUILD, true);
+            builder.put(KNN_INDEX_REMOTE_VECTOR_BUILD_THRESHOLD, "1kb");
+        }
+        return builder.build();
     }
 }

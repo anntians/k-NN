@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.opensearch.knn.index.KNNCircuitBreaker.CB_TIME_INTERVAL;
+import static org.opensearch.knn.index.KNNSettings.KNN_INDEX_REMOTE_VECTOR_BUILD;
+import static org.opensearch.knn.index.KNNSettings.KNN_INDEX_REMOTE_VECTOR_BUILD_THRESHOLD;
 
 /**
  * Integration tests to test Circuit Breaker functionality
@@ -105,6 +107,8 @@ public class KNNCircuitBreakerIT extends KNNRestTestCase {
             .put("number_of_replicas", numNodes - 1)
             .put("index.knn", true)
             .put(KNNSettings.INDEX_KNN_ADVANCED_APPROXIMATE_THRESHOLD, ALWAYS_BUILD_GRAPH)
+                .put(KNN_INDEX_REMOTE_VECTOR_BUILD, true)
+            .put(KNN_INDEX_REMOTE_VECTOR_BUILD_THRESHOLD, "0kb")
             .build();
 
         createKnnIndex(indexName1, settings, createKnnIndexMapping(FIELD_NAME, 2));
