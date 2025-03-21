@@ -19,6 +19,7 @@ import org.opensearch.knn.index.query.KNNQueryResult;
 import org.opensearch.knn.index.store.IndexInputWithBuffer;
 import org.opensearch.knn.index.store.IndexOutputWithBuffer;
 import org.opensearch.knn.index.util.IndexUtil;
+import lombok.extern.log4j.Log4j2;
 
 import java.util.Locale;
 import java.util.Map;
@@ -26,6 +27,7 @@ import java.util.Map;
 /**
  * Service to distribute requests to the proper engine jni service
  */
+@Log4j2
 public class JNIService {
     /**
      * Initialize an index for the native library. Takes in numDocs to
@@ -287,6 +289,7 @@ public class JNIService {
         }
 
         if (KNNEngine.FAISS == knnEngine) {
+            log.info("CURRENTLY IN ANN SEARCH PATH");
             // This code assumes that if filteredIds == null / filteredIds.length == 0 if filter is specified then empty
             // k-NN results are already returned. Otherwise, it's a filter case and we need to run search with
             // filterIds. FilterIds is coming as empty then its the case where we need to do search with Faiss engine

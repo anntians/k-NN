@@ -50,6 +50,8 @@ import static org.opensearch.knn.common.KNNConstants.MODEL_ID;
 import static org.opensearch.knn.common.KNNConstants.MODEL_INDEX_NAME;
 import static org.opensearch.knn.common.KNNConstants.PARAMETERS;
 import static org.opensearch.knn.common.KNNConstants.NAME;
+import static org.opensearch.knn.index.KNNSettings.KNN_INDEX_REMOTE_VECTOR_BUILD;
+import static org.opensearch.knn.index.KNNSettings.KNN_INDEX_REMOTE_VECTOR_BUILD_THRESHOLD;
 
 /**
  * Integration tests to check the correctness of RestKNNStatsHandler
@@ -297,6 +299,8 @@ public class RestKNNStatsHandlerIT extends KNNRestTestCase {
                 .put("number_of_replicas", 0)
                 .put("index.knn", true)
                 .put(KNNSettings.INDEX_KNN_ADVANCED_APPROXIMATE_THRESHOLD, 0)
+                .put(KNN_INDEX_REMOTE_VECTOR_BUILD, true)
+        .put(KNN_INDEX_REMOTE_VECTOR_BUILD_THRESHOLD, "0kb")
                 .build(),
             createKnnIndexMapping(FIELD_NAME, 2)
         );

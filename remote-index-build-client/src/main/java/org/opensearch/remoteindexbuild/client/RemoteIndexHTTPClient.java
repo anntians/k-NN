@@ -13,6 +13,7 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.utils.Base64;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
@@ -87,7 +88,14 @@ public class RemoteIndexHTTPClient implements RemoteIndexClient, Closeable {
             String response = AccessController.doPrivileged(
                 (PrivilegedExceptionAction<String>) () -> httpClient.execute(buildRequest, body -> {
                     if (body.getCode() < SC_OK || body.getCode() > HttpStatus.SC_MULTIPLE_CHOICES) {
-                        throw new IOException("Failed to submit build request, got status code: " + body.getCode());
+                        HttpEntity entity = body.getEntity();
+                        String responseBody = entity != null ? EntityUtils.toString(entity) : "";
+                        throw new IOException(
+                            "Failed to submit build request, got status code: "
+                                + body.getCode()
+                                + " response body: "
+                                + responseBody
+                        );
                     }
                     return EntityUtils.toString(body.getEntity());
                 })
