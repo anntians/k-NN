@@ -11,9 +11,11 @@
 
 package org.opensearch.knn.index;
 
+import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Floats;
+import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
@@ -38,9 +40,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.TreeMap;
+import java.util.Collection;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static org.opensearch.knn.common.KNNConstants.KNN_ENGINE;
 import static org.opensearch.knn.common.KNNConstants.KNN_METHOD;
 import static org.opensearch.knn.common.KNNConstants.MAX_DISTANCE;
@@ -55,8 +59,11 @@ import static org.opensearch.knn.common.KNNConstants.PARAMETERS;
 import static org.opensearch.knn.index.KNNSettings.*;
 import static org.opensearch.knn.index.KNNSettings.KNN_INDEX_REMOTE_VECTOR_BUILD_THRESHOLD;
 
+@AllArgsConstructor
 public class RemoteBuildIT extends KNNRestTestCase {
-    static TestUtils.TestData testData;
+    private static TestUtils.TestData testData;
+    private String description;
+    private SpaceType spaceType;
 
     @BeforeClass
     public static void setUpClass() throws IOException {
@@ -79,10 +86,19 @@ public class RemoteBuildIT extends KNNRestTestCase {
         setupRepository("integ-test-repo");
     }
 
+    @ParametersFactory(argumentFormatting = "description:%1$s; spaceType:%2$s")
+    public static Collection<Object[]> parameters() throws IOException {
+        return Arrays.asList(
+            $$(
+                $("SpaceType L2", SpaceType.L2),
+                $("SpaceType INNER_PRODUCT", SpaceType.INNER_PRODUCT),
+                $("SpaceType COSINESIMIL", SpaceType.COSINESIMIL)
+            )
+        );
+    }
+
     @SneakyThrows
     public void testEndToEnd_whenDoRadiusSearch_whenDistanceThreshold_whenMethodIsHNSWFlat_thenSucceed() {
-        SpaceType spaceType = SpaceType.L2;
-
         List<Integer> mValues = ImmutableList.of(16, 32, 64, 128);
         List<Integer> efConstructionValues = ImmutableList.of(16, 32, 64, 128);
         List<Integer> efSearchValues = ImmutableList.of(16, 32, 64, 128);
@@ -141,11 +157,11 @@ public class RemoteBuildIT extends KNNRestTestCase {
 
     @SneakyThrows
     public void testHNSW_whenGraphThresholdIsMetDuringMerge_thenCreateGraph() {
+        if (spaceType == SpaceType.COSINESIMIL) {
+            return;
+        }
         final String indexName = "test-index-hnsw";
         final String fieldName = "test-field-hnsw";
-        final SpaceType[] spaceTypes = { SpaceType.L2, SpaceType.INNER_PRODUCT };
-        final Random random = new Random();
-        final SpaceType spaceType = spaceTypes[random.nextInt(spaceTypes.length)];
         final int dimension = 128;
         final int numDocs = 100;
 
