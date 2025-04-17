@@ -149,6 +149,7 @@ public class RemoteIndexBuildStrategy implements NativeIndexBuildStrategy {
 
             success = true;
         } catch (Exception e) {
+            log.debug("buildAndWriteIndex failed", e);
             fallbackStrategy.buildAndWriteIndex(indexInfo);
         } finally {
             metrics.endRemoteIndexBuildMetrics(success);
