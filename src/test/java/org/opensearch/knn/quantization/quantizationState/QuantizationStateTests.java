@@ -106,7 +106,7 @@ public class QuantizationStateTests extends KNNTestCase {
         // Case 1: 3 thresholds, each with 2 dimensions
         float[][] thresholds1 = { { 0.5f, 1.5f }, { 1.0f, 2.0f }, { 1.5f, 2.5f } };
         MultiBitScalarQuantizationState state1 = new MultiBitScalarQuantizationState(params, thresholds1);
-        int expectedDimensions1 = 24; // The next multiple of 8 considering all bits
+        int expectedDimensions1 = 8; // 2 dims * 3 bits = 6, aligned to 8
         assertEquals(expectedDimensions1, state1.getDimensions());
 
         // Case 2: 1 threshold, with 5 dimensions (5 bits, should align to 8)
